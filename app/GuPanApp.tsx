@@ -133,7 +133,7 @@ export default function GuPanApp() {
       <section className="hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow"><span /> KOREAN ANSWER FIREWALL · GUPAN 2.0</p>
-          <h1>AI가 AI의 답변만 배운다면,<br /><em>한국어</em>는 어떻게 될까요?</h1>
+          <h1>AI가 AI의 답변만 배운다면,<br className="desktop-break" />{" "}<em>한국어</em>는 어떻게 될까요?</h1>
           <p className="hero-lede">
             우리는 재귀 실험에서 한국어 품질이 더 빠르게 낮아지는 현상을 관찰했습니다.
             GuPan은 인간 작성 자료를 기준으로 답변의 오류와 정보 손실을 제출 전에 막습니다.
@@ -170,7 +170,7 @@ export default function GuPanApp() {
         <div className="section-kicker"><span>OBSERVATION → ACTION</span><i /></div>
         <div className="observation-copy">
           <p>관찰에서 멈추지 않았습니다.</p>
-          <h2 id="observation-title">무너지는 과정을 보여 주는 데서,<br />지금 쓰는 한 문장을 지키는 도구로.</h2>
+          <h2 id="observation-title">무너지는 과정을 보여 주는 데서,<br className="desktop-break" />{" "}지금 쓰는 한 문장을 지키는 도구로.</h2>
         </div>
         <div className="condition-compare">
           <article className="condition-card danger">
@@ -194,7 +194,7 @@ export default function GuPanApp() {
       <section className="checker-section" id="inspect" aria-labelledby="checker-title">
         <div className="section-heading on-dark">
           <p>01 · ANSWER CHECK</p>
-          <h2 id="checker-title">점수보다 먼저,<br />치명적인 오류를 찾습니다.</h2>
+          <h2 id="checker-title">점수보다 먼저,<br className="desktop-break" />{" "}치명적인 오류를 찾습니다.</h2>
           <p className="heading-note">문법 점수가 사실 오류를 덮지 않도록 출처 부재·의미 충돌·수치 불일치를 우선 판정합니다.</p>
         </div>
 
@@ -356,7 +356,7 @@ export default function GuPanApp() {
       <section className="anchor-section" id="anchor" aria-labelledby="anchor-heading">
         <div className="anchor-intro">
           <div className="section-kicker"><span>HUMAN ANCHOR</span><i /></div>
-          <h2 id="anchor-heading">기준점은 AI가 아니라,<br /><em>사람이 쓴 자료</em>입니다.</h2>
+          <h2 id="anchor-heading">기준점은 AI가 아니라,<br className="desktop-break" />{" "}<em>사람이 쓴 자료</em>입니다.</h2>
           <p>GuPan은 AI 답변을 또 다른 AI 답변과 비교하지 않습니다. 작성 주체와 출처를 확인할 수 있는 인간 자료에서 사실을 찾고, 빠지거나 왜곡된 내용을 표시합니다.</p>
         </div>
         <ol className="anchor-steps">
@@ -373,7 +373,7 @@ export default function GuPanApp() {
       <section className="record-section" aria-labelledby="record-title">
         <div className="record-copy">
           <p>AI USE RECORD</p>
-          <h2 id="record-title">답변만 제출하지 말고,<br />검증 과정을 남기세요.</h2>
+          <h2 id="record-title">답변만 제출하지 말고,<br className="desktop-break" />{" "}검증 과정을 남기세요.</h2>
           <p>질문부터 출처 확인, 직접 수정한 부분까지 한 문서로 정리합니다. 수행평가에서 AI를 어떻게 검토했는지 설명할 수 있습니다.</p>
           <button type="button" onClick={() => window.print()}>현재 기록서 PDF로 저장 <span>↗</span></button>
         </div>
@@ -394,7 +394,7 @@ export default function GuPanApp() {
         <div className="lab-head">
           <div>
             <p>02 · COLLAPSE LAB</p>
-            <h2 id="lab-heading">10번 다시 학습시키면,<br />무엇이 남을까?</h2>
+            <h2 id="lab-heading">10번 다시 학습시키면,<br className="desktop-break" />{" "}무엇이 남을까?</h2>
           </div>
           <div className="lab-note"><b>DEMO DATA</b><span>아래 수치는 화면 동작을 보여 주는 정규화 예시입니다. 발표 전 실제 원시 실험값으로 교체해야 합니다.</span></div>
         </div>
@@ -429,7 +429,7 @@ export default function GuPanApp() {
       <section className="method-section" id="method" aria-labelledby="method-heading">
         <div className="method-head">
           <p>03 · METHOD & LIMITS</p>
-          <h2 id="method-heading">강한 결론일수록,<br />조건을 함께 공개합니다.</h2>
+          <h2 id="method-heading">강한 결론일수록,<br className="desktop-break" />{" "}조건을 함께 공개합니다.</h2>
         </div>
         <div className="limit-grid">
           <article><span>01</span><h3>한국어의 위치</h3><p>한국어를 무조건 저자원 언어로 규정하지 않습니다. 이 프로젝트에서는 영어보다 상대적으로 학습 자료가 적은 언어로 다룹니다.</p></article>
@@ -446,7 +446,7 @@ export default function GuPanApp() {
 
       <section className="closing-section">
         <p>FROM OBSERVATION TO PROTECTION</p>
-        <h2>한국어의 붕괴를 관찰하는 데서 끝나지 않고,<br /><em>지금 사용하는 한 문장의 손해</em>부터 줄입니다.</h2>
+        <h2>한국어의 붕괴를 관찰하는 데서 끝나지 않고,<br className="desktop-break" />{" "}<em>지금 사용하는 한 문장의 손해</em>부터 줄입니다.</h2>
         <a href="#inspect">내 AI 답변 검사하기 <span>↗</span></a>
       </section>
 
