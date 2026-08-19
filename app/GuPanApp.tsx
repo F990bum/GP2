@@ -1,19 +1,19 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties, type FormEvent } from "react";
 import {
   analyzeAnswer,
   type AnalysisResult,
   type CheckInput,
   METRIC_LABELS,
   type MetricKey,
-} from "@/lib/analyzer";
+} from "../lib/analyzer";
 import {
   getLabSeries,
   type LabCondition,
   type LabLanguage,
   type LabPoint,
-} from "@/lib/experiment";
+} from "../lib/experiment";
 
 const SAMPLE: CheckInput = {
   question: "세종대왕은 왜 훈민정음을 만들었나요? 중학생 수준으로 설명해 줘.",
@@ -48,7 +48,7 @@ function TrendBars({ series, active, onSelect }: { series: LabPoint[]; active: n
             type="button"
             className={point.generation === active ? "bar-column active" : "bar-column"}
             key={point.generation}
-            style={{ "--bar-height": `${point.accuracy}%` } as React.CSSProperties}
+            style={{ "--bar-height": `${point.accuracy}%` } as CSSProperties}
             aria-label={`G${point.generation} 정확도 ${point.accuracy}`}
             onClick={() => onSelect(point.generation)}
           >

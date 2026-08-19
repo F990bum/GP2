@@ -100,7 +100,7 @@ function similarity(left: string, right: string) {
   return Math.min(1, containment * 0.72 + (shared / union) * 0.28);
 }
 
-function numbers(text: string) {
+function numbers(text: string): string[] {
   return text.match(/\d+(?:\.\d+)?%?/g) ?? [];
 }
 

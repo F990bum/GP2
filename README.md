@@ -2,6 +2,8 @@
 
 한국어 AI 답변을 인간 작성 자료와 대조해 근거 부족, 의미 충돌, 표현 반복과 정보 손실을 찾는 **한국어 AI 답변 품질 방화벽**입니다.
 
+서비스: [https://f990bum.github.io/GP2/](https://f990bum.github.io/GP2/)
+
 ## MVP 기능
 
 - 질문·AI 답변·출처 URL·인간 기준 자료 입력
@@ -46,4 +48,4 @@ npm run lint
 
 ## 기술 구성
 
-React 19, TypeScript, vinext, Vite, Cloudflare Workers 호환 Sites 런타임을 사용합니다.
+React 19, TypeScript와 Vite를 사용합니다. `main` 브랜치가 변경되면 GitHub Actions가 `/GP2/` 경로용 정적 파일을 빌드해 GitHub Pages에 배포합니다.
