@@ -1,4 +1,4 @@
-name: Deploy GuPan to GitHub Pages
+name: Deploy TRASE to GitHub Pages
 
 on:
   push:
