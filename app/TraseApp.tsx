@@ -40,7 +40,7 @@ function safeLink(value?: string) {
 
 function TrendBars({ series, active, onSelect }: { series: LabPoint[]; active: number; onSelect: (generation: number) => void }) {
   return (
-    <div className="trend-bars" aria-label="세대별 정확도 변화 그래프">
+    <div className="trend-bars" role="group" aria-label="세대별 정확도 변화 그래프">
       <div className="chart-grid" aria-hidden="true"><i /><i /><i /><i /></div>
       <div className="bar-columns">
         {series.map((point) => (
@@ -50,6 +50,7 @@ function TrendBars({ series, active, onSelect }: { series: LabPoint[]; active: n
             key={point.generation}
             style={{ "--bar-height": `${point.accuracy}%` } as CSSProperties}
             aria-label={`G${point.generation} 정확도 ${point.accuracy}`}
+            aria-pressed={point.generation === active}
             onClick={() => onSelect(point.generation)}
           >
             <i><b /></i><span>G{point.generation}</span>
@@ -60,7 +61,7 @@ function TrendBars({ series, active, onSelect }: { series: LabPoint[]; active: n
   );
 }
 
-export default function GuPanApp() {
+export default function TraseApp() {
   const [input, setInput] = useState<CheckInput>(SAMPLE);
   const [result, setResult] = useState<AnalysisResult>(() => analyzeAnswer(SAMPLE));
   const [tab, setTab] = useState<"sentences" | "source" | "revision">("sentences");
@@ -115,11 +116,12 @@ export default function GuPanApp() {
   };
 
   return (
-    <main>
+    <>
+      <a className="skip-link" href="#main-content">본문 바로가기</a>
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="GuPan 2.0 홈">
-          <span className="brand-mark" aria-hidden="true">G</span>
-          <span>GuPan <b>2.0</b></span>
+        <a className="brand" href="#top" aria-label="TRASE 홈">
+          <span className="brand-mark" aria-hidden="true">T</span>
+          <span className="brand-lockup"><strong>TRASE</strong><small>Response &amp; Source Evaluation</small></span>
         </a>
         <nav aria-label="주요 메뉴">
           <a href="#inspect">답변 검사</a>
@@ -130,19 +132,28 @@ export default function GuPanApp() {
         <a className="header-cta" href="#inspect">무료로 검사하기</a>
       </header>
 
+      <main id="main-content">
       <section className="hero" id="top">
         <div className="hero-copy">
-          <p className="eyebrow"><span /> KOREAN ANSWER FIREWALL · GUPAN 2.0</p>
+          <p className="eyebrow">
+            <span className="eyebrow-dot" aria-hidden="true" />
+            <span className="eyebrow-copy"><b>TRASE</b> · Trusted Response Assessment &amp; Source Evaluation</span>
+          </p>
           <h1>AI가 AI의 답변만 배운다면,<br className="desktop-break" />{" "}<em>한국어</em>는 어떻게 될까요?</h1>
           <p className="hero-lede">
             우리는 재귀 실험에서 한국어 품질이 더 빠르게 낮아지는 현상을 관찰했습니다.
-            GuPan은 인간 작성 자료를 기준으로 답변의 오류와 정보 손실을 제출 전에 막습니다.
+            TRASE는 인간 작성 자료를 기준으로 답변의 오류와 정보 손실을 제출 전에 막습니다.
           </p>
           <div className="hero-actions">
             <a className="primary-button" href="#inspect">내 AI 답변 검사하기 <span>↗</span></a>
             <a className="text-link" href="#lab">붕괴 실험 먼저 보기 <span>→</span></a>
           </div>
           <p className="hero-note"><span>✓</span> 검증되지 않은 답변은 저장하거나 학습 데이터로 사용하지 않습니다.</p>
+          <ul className="hero-trust" aria-label="TRASE 핵심 원칙">
+            <li><b>01</b><span>인간 자료 기준점</span></li>
+            <li><b>02</b><span>문장별 근거 대조</span></li>
+            <li><b>03</b><span>승인 전 자동 축적 없음</span></li>
+          </ul>
         </div>
 
         <div className="collapse-card" aria-label="한국어 답변 붕괴 표본">
@@ -199,7 +210,7 @@ export default function GuPanApp() {
         </div>
 
         <div className="checker-shell">
-          <form className="checker-form" onSubmit={runCheck}>
+          <form className="checker-form" onSubmit={runCheck} aria-busy={isAnalyzing}>
             <div className="form-head">
               <div><span>INPUT</span><h3>검사할 답변</h3></div>
               <button type="button" className="ghost-button" onClick={loadExample}>예시 답변 불러오기</button>
@@ -219,9 +230,12 @@ export default function GuPanApp() {
                 value={input.answer}
                 onChange={(event) => update("answer", event.target.value)}
                 rows={8}
+                required
+                aria-invalid={Boolean(formError)}
+                aria-describedby="answer-count answer-error"
                 placeholder="AI가 생성한 답변을 수정하지 않고 그대로 붙여 넣으세요."
               />
-              <small>{input.answer.length.toLocaleString("ko-KR")}자</small>
+              <small id="answer-count">{input.answer.length.toLocaleString("ko-KR")}자</small>
             </label>
             <fieldset>
               <legend><b>03</b> 사용 목적</legend>
@@ -262,7 +276,7 @@ export default function GuPanApp() {
               </label>
               <p>URL은 출처 표시에 사용됩니다. 브라우저 제한 때문에 실제 의미 대조에는 붙여 넣은 본문을 사용합니다.</p>
             </div>
-            {formError && <p className="form-error" role="alert">{formError}</p>}
+            <p className={formError ? "form-error" : "form-error sr-only"} id="answer-error" role={formError ? "alert" : undefined}>{formError || "답변 입력 상태가 정상입니다."}</p>
             <button className="analyze-button" type="submit" disabled={isAnalyzing}>
               <span>{isAnalyzing ? "문장과 근거를 대조하는 중…" : "한국어 답변 검사 시작"}</span>
               <b aria-hidden="true">{isAnalyzing ? "···" : "↗"}</b>
@@ -270,11 +284,12 @@ export default function GuPanApp() {
             <p className="form-disclaimer">검사 결과는 참고 자료입니다. 최종 판단과 수정은 사용자가 직접 확인해야 합니다.</p>
           </form>
 
-          <section className={isAnalyzing ? "result-panel scanning" : "result-panel"} aria-live="polite">
+          <section className={isAnalyzing ? "result-panel scanning" : "result-panel"} aria-labelledby="result-title">
             <div className="result-head">
-              <div><span>RESULT</span><h3>품질 방화벽 리포트</h3></div>
+              <div><span>RESULT</span><h3 id="result-title">품질 방화벽 리포트</h3></div>
               <span className="privacy-chip">● 기기 안에서 검사</span>
             </div>
+            <p className="sr-only" role="status" aria-live="polite">{isAnalyzing ? "문장과 근거를 대조하고 있습니다." : `검사가 완료되었습니다. 최종 판정은 ${result.verdict}입니다.`}</p>
             {isAnalyzing && <div className="scan-line" aria-hidden="true" />}
             <div className={`verdict-block verdict-${result.verdict.replaceAll(" ", "-")}`}>
               <div>
@@ -304,10 +319,10 @@ export default function GuPanApp() {
               ))}
             </div>
 
-            <div className="result-tabs" role="tablist" aria-label="검사 결과 보기">
-              <button type="button" role="tab" aria-selected={tab === "sentences"} onClick={() => setTab("sentences")}>문장별 문제 <b>{result.findings.filter((item) => item.level !== "good").length}</b></button>
-              <button type="button" role="tab" aria-selected={tab === "source"} onClick={() => setTab("source")}>출처 대조</button>
-              <button type="button" role="tab" aria-selected={tab === "revision"} onClick={() => setTab("revision")}>수정 전후</button>
+            <div className="result-tabs" aria-label="검사 결과 보기">
+              <button type="button" aria-pressed={tab === "sentences"} onClick={() => setTab("sentences")}>문장별 문제 <b>{result.findings.filter((item) => item.level !== "good").length}</b></button>
+              <button type="button" aria-pressed={tab === "source"} onClick={() => setTab("source")}>출처 대조</button>
+              <button type="button" aria-pressed={tab === "revision"} onClick={() => setTab("revision")}>수정 전후</button>
             </div>
 
             <div className="tab-body">
@@ -345,8 +360,8 @@ export default function GuPanApp() {
 
             <div className="result-actions">
               <button type="button" onClick={copyRevision}>{copied ? "복사했습니다 ✓" : "수정안 복사"}</button>
-              <button type="button" onClick={() => window.print()}>검증 기록서 PDF</button>
-              <button type="button" className={approved ? "approved" : ""} onClick={() => setApproved((value) => !value)}>{approved ? "내 검토 완료 ✓" : "내 검토 완료 표시"}</button>
+              <button type="button" onClick={() => window.print()}>인쇄·PDF 저장</button>
+              <button type="button" className={approved ? "approved" : ""} aria-pressed={approved} onClick={() => setApproved((value) => !value)}>{approved ? "내 검토 완료 ✓" : "내 검토 완료 표시"}</button>
             </div>
             <p className="approval-note">검토 완료 표시는 이 화면에서만 유지되며 답변이나 자료를 서버에 저장하지 않습니다.</p>
           </section>
@@ -357,7 +372,7 @@ export default function GuPanApp() {
         <div className="anchor-intro">
           <div className="section-kicker"><span>HUMAN ANCHOR</span><i /></div>
           <h2 id="anchor-heading">기준점은 AI가 아니라,<br className="desktop-break" />{" "}<em>사람이 쓴 자료</em>입니다.</h2>
-          <p>GuPan은 AI 답변을 또 다른 AI 답변과 비교하지 않습니다. 작성 주체와 출처를 확인할 수 있는 인간 자료에서 사실을 찾고, 빠지거나 왜곡된 내용을 표시합니다.</p>
+          <p>TRASE는 AI 답변을 또 다른 AI 답변과 비교하지 않습니다. 작성 주체와 출처를 확인할 수 있는 인간 자료에서 사실을 찾고, 빠지거나 왜곡된 내용을 표시합니다.</p>
         </div>
         <ol className="anchor-steps">
           <li><b>01</b><span>인간 자료에서</span><strong>핵심 사실 추출</strong></li>
@@ -374,11 +389,11 @@ export default function GuPanApp() {
         <div className="record-copy">
           <p>AI USE RECORD</p>
           <h2 id="record-title">답변만 제출하지 말고,<br className="desktop-break" />{" "}검증 과정을 남기세요.</h2>
-          <p>질문부터 출처 확인, 직접 수정한 부분까지 한 문서로 정리합니다. 수행평가에서 AI를 어떻게 검토했는지 설명할 수 있습니다.</p>
-          <button type="button" onClick={() => window.print()}>현재 기록서 PDF로 저장 <span>↗</span></button>
+          <p>질문부터 출처 확인, 발견한 오류와 수정 제안까지 한 문서로 정리합니다. 수행평가에서 AI를 어떻게 검토했는지 설명할 수 있습니다.</p>
+          <button type="button" onClick={() => window.print()}>현재 기록서 인쇄·PDF 저장 <span>↗</span></button>
         </div>
         <div className="record-paper" aria-label="AI 활용 기록서 미리보기">
-          <div><span>GuPan 2.0</span><b>AI 활용 및 검증 과정 기록서</b><small>HUMAN-ANCHORED REVIEW</small></div>
+          <div><span>TRASE</span><b>AI 활용 및 검증 과정 기록서</b><small>HUMAN-ANCHORED REVIEW</small></div>
           <ol>
             <li><b>01</b><span>최초 질문과 AI 답변</span><i>기록됨</i></li>
             <li><b>02</b><span>발견된 오류와 판정 이유</span><i>기록됨</i></li>
@@ -400,14 +415,14 @@ export default function GuPanApp() {
         </div>
 
         <div className="lab-controls">
-          <fieldset><legend>언어</legend><button type="button" className={language === "ko" ? "active" : ""} onClick={() => setLanguage("ko")}>한국어</button><button type="button" className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}>English</button></fieldset>
-          <fieldset><legend>학습 조건</legend><button type="button" className={condition === "recursive" ? "active danger" : ""} onClick={() => setCondition("recursive")}>AI 출력만 반복</button><button type="button" className={condition === "anchored" ? "active safe" : ""} onClick={() => setCondition("anchored")}>GuPan 보호 방식</button></fieldset>
+          <fieldset><legend>언어</legend><button type="button" aria-pressed={language === "ko"} className={language === "ko" ? "active" : ""} onClick={() => setLanguage("ko")}>한국어</button><button type="button" aria-pressed={language === "en"} className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}>English</button></fieldset>
+          <fieldset><legend>학습 조건</legend><button type="button" aria-pressed={condition === "recursive"} className={condition === "recursive" ? "active danger" : ""} onClick={() => setCondition("recursive")}>AI 출력만 반복</button><button type="button" aria-pressed={condition === "anchored"} className={condition === "anchored" ? "active safe" : ""} onClick={() => setCondition("anchored")}>TRASE 검증 방식</button></fieldset>
         </div>
 
         <div className="lab-workspace">
           <div className="generation-control">
             <div><span>GENERATION</span><b>G{generation}</b></div>
-            <input type="range" min="0" max="10" step="1" value={generation} onChange={(event) => setGeneration(Number(event.target.value))} aria-label="세대 선택" />
+            <input type="range" min="0" max="10" step="1" value={generation} onChange={(event) => setGeneration(Number(event.target.value))} aria-label="세대 선택" aria-valuetext={`G${generation}`} />
             <div className="range-labels"><span>G0 · 원본</span><span>G5</span><span>G10 · 최종</span></div>
           </div>
           <div className="lab-texts">
@@ -415,6 +430,7 @@ export default function GuPanApp() {
             <article className={condition === "recursive" ? "is-recursive" : "is-anchored"}><span>CURRENT · G{generation}</span><p>{labPoint.text}</p></article>
           </div>
           <TrendBars series={series} active={generation} onSelect={setGeneration} />
+          <p className="chart-swipe-hint">← 좌우로 밀어 G0부터 G10까지 보기 →</p>
           <div className="lab-metrics">
             <div><span>선택 세대 정확도</span><b>{labPoint.accuracy}<small>/100</small></b></div>
             <div><span>표현 다양성</span><b>{labPoint.diversity}<small>/100</small></b></div>
@@ -435,7 +451,7 @@ export default function GuPanApp() {
           <article><span>01</span><h3>한국어의 위치</h3><p>한국어를 무조건 저자원 언어로 규정하지 않습니다. 이 프로젝트에서는 영어보다 상대적으로 학습 자료가 적은 언어로 다룹니다.</p></article>
           <article><span>02</span><h3>실험의 범위</h3><p>한국어의 빠른 품질 저하는 사용한 모델·데이터·프롬프트와 재귀 조건에서 관찰된 결과이며, 모든 GPT에 일반화하지 않습니다.</p></article>
           <article><span>03</span><h3>탐지의 한계</h3><p>AI 생성 여부는 참고 신호일 뿐입니다. 사람과 AI를 확정적으로 구분하는 판정이나 개별 문장의 진실 판정에 사용하지 않습니다.</p></article>
-          <article><span>04</span><h3>GuPan이 하지 않는 것</h3><p>GPT 자체의 학습 구조를 바꾸지 않습니다. 사용자가 접하는 답변을 인간 자료와 대조해 실제 정보 손실을 줄이는 도구입니다.</p></article>
+          <article><span>04</span><h3>TRASE가 하지 않는 것</h3><p>GPT 자체의 학습 구조를 바꾸지 않습니다. 사용자가 접하는 답변을 인간 자료와 대조해 실제 정보 손실을 줄이는 도구입니다.</p></article>
         </div>
         <div className="research-links">
           <a href="https://arxiv.org/abs/2404.01413" target="_blank" rel="noreferrer"><span>2024 · ARXIV</span><b>원본 실제 데이터 보존과 합성 데이터 누적</b><p>원본을 유지하며 합성 데이터를 누적한 실험에서 붕괴를 피한 조건을 보고했습니다.</p><i>↗</i></a>
@@ -449,15 +465,16 @@ export default function GuPanApp() {
         <h2>한국어의 붕괴를 관찰하는 데서 끝나지 않고,<br className="desktop-break" />{" "}<em>지금 사용하는 한 문장의 손해</em>부터 줄입니다.</h2>
         <a href="#inspect">내 AI 답변 검사하기 <span>↗</span></a>
       </section>
+      </main>
 
       <footer className="site-footer">
-        <div className="brand"><span className="brand-mark" aria-hidden="true">G</span><span>GuPan <b>2.0</b></span></div>
-        <p>한국어 AI 답변 품질 방화벽 · Human-anchored answer review</p>
+        <div className="brand"><span className="brand-mark" aria-hidden="true">T</span><span className="brand-lockup"><strong>TRASE</strong><small>Response &amp; Source Evaluation</small></span></div>
+        <p><b>Trusted Response Assessment &amp; Source Evaluation</b><span>한국어 AI 답변 품질 방화벽</span></p>
         <a href="https://github.com/F990bum/GP2" target="_blank" rel="noreferrer">GitHub ↗</a>
       </footer>
 
       <section className="print-report" aria-hidden="true">
-        <header><b>GuPan 2.0</b><span>AI 활용 및 검증 과정 기록서</span></header>
+        <header><b>TRASE</b><span>AI 활용 및 검증 과정 기록서</span></header>
         <h1>한국어 AI 답변 검증 기록</h1>
         <dl><div><dt>사용 목적</dt><dd>{input.purpose}</dd></div><div><dt>최종 판정</dt><dd>{result.verdict}</dd></div><div><dt>검사 일자</dt><dd>{new Date().toLocaleDateString("ko-KR")}</dd></div></dl>
         <h2>1. 사용한 질문</h2><p>{input.question || "기록 없음"}</p>
@@ -465,8 +482,8 @@ export default function GuPanApp() {
         <h2>3. 확인한 인간 기준 자료</h2><p>{input.referenceText || "입력된 기준 자료 없음"}</p>{input.sourceUrl && <p>출처: {input.sourceUrl}</p>}
         <h2>4. 발견된 오류</h2><ol>{result.findings.filter((finding) => finding.level !== "good").map((finding) => <li key={finding.id}><b>{finding.label}</b> — {finding.issue}</li>)}</ol>
         <h2>5. 근거 기반 수정안</h2><p>{result.revisedAnswer}</p>
-        <footer>이 기록서는 GuPan 2.0의 규칙 기반 MVP 검사 결과입니다. 최종 제출 전 사용자가 출처와 문장을 직접 확인해야 합니다.</footer>
+        <footer>이 기록서는 TRASE의 규칙 기반 MVP 검사 결과입니다. 최종 제출 전 사용자가 출처와 문장을 직접 확인해야 합니다.</footer>
       </section>
-    </main>
+    </>
   );
 }
