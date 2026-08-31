@@ -171,7 +171,7 @@ export function analyzeAnswer(input: CheckInput): AnalysisResult {
   let contradictionCount = 0;
   let unsupportedCount = 0;
 
-  if (invalidSource) fatalErrors.push("출처 URL 형식을 확인할 수 없습니다.");
+  if (invalidSource) fatalErrors.push("출처 링크 형식이 올바르지 않습니다.");
 
   const findings: Finding[] = answerSentences.map((sentence, index) => {
     const { bestSentence, bestScore } = sourceEvidence(sentence, referenceSentences);
@@ -196,9 +196,9 @@ export function analyzeAnswer(input: CheckInput): AnalysisResult {
         level: "critical" as const,
         label,
         issue: mismatchedNumber
-          ? "답변의 핵심 수치가 인간 기준 자료에서 확인되지 않습니다."
-          : "답변과 기준 자료의 긍정·부정 방향이 서로 다릅니다.",
-        evidence: bestSentence || "기준 자료에서 대응 문장을 찾지 못했습니다.",
+          ? "답변에 나온 숫자를 사람이 쓴 자료에서 확인할 수 없습니다."
+          : "답변과 사람이 쓴 자료가 서로 반대되는 말을 하고 있습니다.",
+        evidence: bestSentence || "사람이 쓴 자료에서 맞대 볼 문장을 찾지 못했습니다.",
         suggestion: bestSentence || softenAbsolute(sentence),
         evidenceScore: clamp(bestScore * 100),
       };
@@ -212,8 +212,8 @@ export function analyzeAnswer(input: CheckInput): AnalysisResult {
         level: "warning" as const,
         label: "근거 부족",
         issue: hasReference
-          ? "이 주장을 뒷받침하는 내용을 인간 기준 자료에서 충분히 찾지 못했습니다."
-          : "대조할 인간 기준 자료가 입력되지 않았습니다.",
+          ? "이 말을 뒷받침하는 내용을 사람이 쓴 자료에서 충분히 찾지 못했습니다."
+          : "맞대 볼 사람 작성 자료를 넣지 않았습니다.",
         evidence: bestSentence || "연결된 근거 없음",
         suggestion: bestSentence || `${softenAbsolute(sentence)} (출처 확인 필요)`,
         evidenceScore: clamp(bestScore * 100),
@@ -230,7 +230,7 @@ export function analyzeAnswer(input: CheckInput): AnalysisResult {
         level: "style" as const,
         label: absolute ? "과도한 단정" : "번역투 표현",
         issue: absolute
-          ? `“${absolute}”처럼 예외를 지우는 표현은 출처보다 강한 주장으로 읽힐 수 있습니다.`
+          ? `“${absolute}”처럼 예외를 지우는 표현은 출처보다 센 주장으로 읽힐 수 있습니다.`
           : "한국어에서 더 짧고 자연스럽게 쓸 수 있는 표현입니다.",
         evidence: bestSentence,
         suggestion,
@@ -243,7 +243,7 @@ export function analyzeAnswer(input: CheckInput): AnalysisResult {
       sentence,
       level: "good" as const,
       label: "근거 확인",
-      issue: "기준 자료와 의미가 대체로 일치합니다.",
+      issue: "사람이 쓴 자료와 내용이 대체로 맞습니다.",
       evidence: bestSentence,
       suggestion: sentence,
       evidenceScore: clamp(bestScore * 100),
@@ -300,12 +300,12 @@ export function analyzeAnswer(input: CheckInput): AnalysisResult {
   }
 
   const summary = fatalErrors.length
-    ? `${fatalErrors[0]} 치명적 오류가 세부 점수보다 먼저 적용되었습니다.`
+    ? `${fatalErrors[0]} 꼭 고쳐야 할 오류라서 세부 점수보다 먼저 알려 드립니다.`
     : unsupportedCount > 0
       ? `핵심 주장 ${unsupportedCount}개에 연결할 근거가 부족합니다.`
       : verdict === "사용 가능"
-        ? "치명적 오류가 없고 주요 주장이 기준 자료와 대체로 일치합니다."
-        : "치명적 오류는 없지만 표현과 정보 보존을 다듬어야 합니다.";
+        ? "꼭 고쳐야 할 오류가 없고, 주요 내용이 사람이 쓴 자료와 대체로 맞습니다."
+        : "꼭 고쳐야 할 오류는 없지만 표현과 빠진 내용을 다듬어야 합니다.";
 
   const revisedAnswer = findings
     .map((finding) => finding.suggestion)

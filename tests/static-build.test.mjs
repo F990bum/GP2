@@ -6,7 +6,7 @@ test("builds a GitHub Pages entry with the /GP2/ base path", async () => {
   const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
 
   assert.match(html, /<html[^>]*lang="ko"/i);
-  assert.match(html, /<title>TRASE — 한국어 AI 답변 품질 방화벽<\/title>/i);
+  assert.match(html, /<title>TRASE — AI 답변 신뢰도 검사<\/title>/i);
   assert.match(html, /Trusted Response Assessment &amp; Source Evaluation/);
   assert.match(html, /(?:src|href)="\/GP2\/assets\//);
   assert.match(html, /https:\/\/f990bum\.github\.io\/GP2\/trase-og\.png/);
