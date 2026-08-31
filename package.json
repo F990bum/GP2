@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "npm run build && node --test tests/static-build.test.mjs && node --experimental-strip-types --test tests/analyzer.test.ts",
+    "test": "npm run build && node --test tests/static-build.test.mjs && node --experimental-strip-types --test tests/analyzer.test.ts tests/experiment.test.ts",
     "lint": "eslint . --ignore-pattern dist"
   },
   "dependencies": {
