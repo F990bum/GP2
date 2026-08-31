@@ -44,6 +44,13 @@ function trustWording(score: number) {
   return "믿고 쓰기 어렵습니다. 사람이 쓴 자료로 다시 확인해야 합니다.";
 }
 
+/** 기준 자료 없이 검사했을 때의 안내. 점수가 "사실 확인 결과"로 읽히지 않도록 말을 바꾼다. */
+function unverifiedWording(score: number) {
+  if (score >= 80) return "글 자체는 무리 없어 보입니다. 다만 내용이 사실인지는 확인하지 못했습니다.";
+  if (score >= 60) return "글 형태는 괜찮지만 다듬을 곳이 있습니다. 내용이 사실인지는 확인하지 못했습니다.";
+  return "표현부터 다듬는 편이 좋겠습니다. 내용이 사실인지도 확인하지 못했습니다.";
+}
+
 function safeLink(value?: string) {
   if (!value) return null;
   try {
@@ -116,6 +123,7 @@ export default function TraseApp() {
   const [copied, setCopied] = useState(false);
   const [approved, setApproved] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [usingSample, setUsingSample] = useState(true);
   const [language, setLanguage] = useState<LabLanguage>("ko");
   const [run, setRun] = useState<RunId>("e1");
   const [generation, setGeneration] = useState(MAX_GENERATION);
@@ -131,14 +139,27 @@ export default function TraseApp() {
   const fatalCount = result.fatalErrors.length;
   const issueCount = result.findings.filter((finding) => finding.level !== "good").length;
   const verdictTone = result.verdict === "사용 가능" ? "safe" : result.verdict === "사용 비추천" ? "danger" : "warn";
+  const missingAnchor = !checkedInput.referenceText.trim();
   const trustCaption =
     result.score === null
       ? `꼭 고쳐야 할 오류 ${fatalCount}개 — 점수보다 먼저 고쳐야 합니다`
-      : trustWording(result.score);
-  const missingAnchor = !checkedInput.referenceText.trim();
+      : missingAnchor
+        ? unverifiedWording(result.score)
+        : trustWording(result.score);
 
+  /**
+   * 예시가 올라와 있는 상태에서 사용자가 질문이나 답변을 자기 것으로 바꾸면
+   * 접혀 있던 고급 설정의 예시 기준 자료도 함께 비운다.
+   * 그러지 않으면 보이지도 않는 남의 자료와 대조되어 점수가 엉뚱하게 나온다.
+   */
   const update = (key: keyof CheckInput, value: string) => {
-    setInput((current) => ({ ...current, [key]: value }));
+    const replacingSample = usingSample && (key === "question" || key === "answer");
+    setInput((current) => ({
+      ...current,
+      [key]: value,
+      ...(replacingSample ? { referenceText: "", sourceUrl: "" } : null),
+    }));
+    if (replacingSample || key === "referenceText" || key === "sourceUrl") setUsingSample(false);
     setApproved(false);
   };
 
@@ -161,6 +182,7 @@ export default function TraseApp() {
   };
 
   const loadExample = () => {
+    setUsingSample(true);
     setInput(SAMPLE);
     setResult(analyzeAnswer(SAMPLE));
     setCheckedInput(SAMPLE);
@@ -431,7 +453,7 @@ export default function TraseApp() {
                 aria-controls="advanced-panel"
                 onClick={() => setAdvancedOpen((open) => !open)}
               >
-                <span>고급 설정 <small>출처 · 기준 자료 · 사용 목적</small></span>
+                <span>고급 설정 <small>{input.referenceText.trim() ? "기준 자료 있음 · 출처 · 사용 목적" : "출처 · 기준 자료 · 사용 목적"}</small></span>
                 <b aria-hidden="true">{advancedOpen ? "−" : "+"}</b>
               </button>
               <p className="advanced-hint">사람이 쓴 자료를 함께 넣으면 훨씬 정확하게 검사할 수 있습니다. 없어도 검사는 됩니다.</p>
@@ -511,7 +533,7 @@ export default function TraseApp() {
 
             {missingAnchor && (
               <p className="anchor-nudge">
-                사람이 쓴 기준 자료 없이 검사했습니다. <b>고급 설정</b>을 열어 자료를 붙여 넣으면 내용이 맞는지까지 확인할 수 있습니다.
+                기준 자료가 없어 <b>글 자체의 상태만</b> 확인했습니다. 내용이 사실인지는 검사하지 못했습니다. <b>고급 설정</b>에 사람이 쓴 자료를 붙여 넣으면 문장마다 사실 여부까지 대조합니다.
               </p>
             )}
 
