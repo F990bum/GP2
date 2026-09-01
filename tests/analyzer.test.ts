@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { analyzeAnswer, splitSentences } from "../lib/analyzer.ts";
+import { analyzeAnswer, normalizeMarkdown, splitSentences } from "../lib/analyzer.ts";
 
 test("flags missing human reference before grammar scores can pass", () => {
   const report = analyzeAnswer({
@@ -191,6 +191,89 @@ test("does not punish the repeated polite endings of natural Korean", () => {
   assert.ok(
     report.metrics.diversity >= 80,
     `한국어 어미 반복만으로 표현 다양성이 ${report.metrics.diversity}점까지 떨어졌습니다`,
+  );
+});
+
+const MARKDOWN_ANSWER = [
+  "감자튀김이 맛있는 이유는 **여러 현상이 동시에 일어나기 때문**이다.",
+  "",
+  "### 1. 마이야르 반응",
+  "",
+  "감자를 뜨거운 기름에 튀기면 표면에서 *마이야르 반응*이 일어난다.",
+  "",
+  "> 환원당 + 아미노산 → 향미 물질",
+  "",
+  "- 고소한 향이 생긴다.",
+  "- 표면이 갈색으로 변한다.",
+  "",
+  "| 요소 | 영향 |",
+  "| --- | --- |",
+  "| 마이야르 반응 | 구운 향과 고소함 |",
+  "",
+  "---",
+  "",
+  "```js",
+  "const notProse = 1;",
+  "```",
+  "",
+  "결국 `여러 자극`이 한꺼번에 들어온다.",
+].join("\n");
+
+test("strips markdown syntax before analysing", () => {
+  const cleaned = normalizeMarkdown(MARKDOWN_ANSWER);
+
+  assert.ok(!cleaned.includes("###"), "제목 기호가 남았습니다");
+  assert.ok(!cleaned.includes("**"), "굵게 표기가 남았습니다");
+  assert.ok(!cleaned.includes("|"), "표 기호가 남았습니다");
+  assert.ok(!cleaned.includes(">"), "인용 기호가 남았습니다");
+  assert.ok(!cleaned.includes("```"), "코드 블록이 남았습니다");
+  assert.ok(!cleaned.includes("const notProse"), "코드 내용이 문장으로 섞였습니다");
+  assert.ok(!/^-\s/m.test(cleaned), "목록 기호가 남았습니다");
+  assert.ok(cleaned.includes("마이야르 반응"), "본문이 사라졌습니다");
+  assert.ok(cleaned.includes("구운 향과 고소함"), "표 안의 내용이 사라졌습니다");
+});
+
+test("splits a markdown answer into real sentences", () => {
+  const report = analyzeAnswer({
+    question: "감자튀김이 맛있는 이유는?",
+    answer: MARKDOWN_ANSWER,
+    referenceText: "",
+  });
+
+  assert.ok(
+    report.findings.length >= 6,
+    `마크다운 답변이 ${report.findings.length}조각으로만 나뉘었습니다`,
+  );
+  assert.ok(
+    report.findings.every((finding) => !finding.sentence.includes("###")),
+    "검사 결과에 마크다운 기호가 그대로 노출됩니다",
+  );
+});
+
+test("does not score an unverified answer as if it had failed verification", () => {
+  const unverified = analyzeAnswer({
+    question: "감자튀김이 맛있는 이유는?",
+    answer: MARKDOWN_ANSWER,
+    referenceText: "",
+  });
+
+  // 자료를 넣지 않은 것은 "확인 못 함"이지 "틀림"이 아니다.
+  assert.equal(unverified.verdict, "근거 추가 필요");
+  assert.equal(unverified.metrics.grounding, 0);
+  assert.ok(
+    (unverified.score as number) >= 65,
+    `자료 없이 검사했을 뿐인데 ${unverified.score}점까지 떨어졌습니다`,
+  );
+
+  // 반대로 관계없는 자료를 주고 대조에 실패한 경우는 더 낮아야 한다.
+  const mismatched = analyzeAnswer({
+    question: "감자튀김이 맛있는 이유는?",
+    answer: MARKDOWN_ANSWER,
+    referenceText: REFERENCE,
+  });
+  assert.ok(
+    (mismatched.score as number) < (unverified.score as number),
+    `대조에 실패한 답변(${mismatched.score})이 미검증 답변(${unverified.score})보다 높습니다`,
   );
 });
 

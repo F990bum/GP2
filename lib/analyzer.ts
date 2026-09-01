@@ -105,6 +105,24 @@ const UNSUPPORTED_VERDICT_RATIO = 0.25;
 /** 전체 본문 매칭은 근거 문장을 특정하지 못하므로 살짝 깎아 문장 단위 매칭을 우선한다. */
 const WHOLE_DOCUMENT_DISCOUNT = 0.94;
 
+const METRIC_WEIGHTS: Record<MetricKey, number> = {
+  grounding: 0.26,
+  accuracy: 0.22,
+  koreanQuality: 0.15,
+  diversity: 0.12,
+  information: 0.13,
+  transparency: 0.12,
+};
+
+/**
+ * 기준 자료가 있어야만 잴 수 있는 지표.
+ * 자료를 넣지 않았을 때 이 둘이 0점인 것은 "답변이 나쁘다"가 아니라 "확인하지 못했다"는 뜻이다.
+ * 확인하지 못한 항목을 0점으로 총점에 넣으면 어떤 답변이든 60점을 넘을 수 없어,
+ * 자료를 넣지 않은 사용자에게 사실과 다른 신호를 준다. 그래서 총점 계산에서 빼고 나머지를 정규화한다.
+ * 대신 판정은 계속 "근거 추가 필요"로 남겨 확인되지 않았다는 사실 자체를 감추지 않는다.
+ */
+const SOURCE_DEPENDENT_METRICS: readonly MetricKey[] = ["grounding", "information"];
+
 export const METRIC_LABELS: Record<MetricKey, string> = {
   grounding: "근거성",
   accuracy: "의미 정확성",
@@ -120,6 +138,54 @@ function clamp(value: number, min = 0, max = 100) {
 
 function ratio(part: number, whole: number) {
   return whole > 0 ? part / whole : 0;
+}
+
+/** 표 구분선(`|---|:--:|`)인지. 내용이 없으므로 통째로 버린다. */
+const TABLE_DIVIDER = /^\|?[\s:|-]*-[\s:|-]*\|[\s:|-]*$/;
+/** 수평선(`---`, `***`, `___`). */
+const HORIZONTAL_RULE = /^([-*_])\s*(?:\1\s*){2,}$/;
+
+/**
+ * AI 답변은 대개 마크다운으로 온다.
+ * `###`, `**굵게**`, 표, 인용, 목록 기호를 걷어 내고 문장만 남긴다.
+ * 이 과정을 건너뛰면 제목과 표 행이 통째로 한 문장이 되어 근거 대조가 무너진다.
+ */
+export function normalizeMarkdown(text: string): string {
+  const withoutBlocks = text
+    .replace(/```[\s\S]*?```/g, "\n")
+    .replace(/~~~[\s\S]*?~~~/g, "\n")
+    .replace(/`([^`\n]*)`/g, "$1")
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>\n]+>/g, " ");
+
+  const lines = withoutBlocks.split(/\r?\n/).map((rawLine) => {
+    const line = rawLine.trim();
+    if (!line || HORIZONTAL_RULE.test(line) || TABLE_DIVIDER.test(line)) return "";
+    let content = line
+      .replace(/^#{1,6}\s+/, "")
+      .replace(/^>\s?/, "")
+      .replace(/^(?:[-*+]|\d+[.)])\s+/, "");
+    if (content.startsWith("|")) {
+      // 표 한 줄은 칸을 쉼표로 이어 붙여 하나의 진술로 다룬다.
+      content = content
+        .split("|")
+        .map((cell) => cell.trim())
+        .filter(Boolean)
+        .join(", ");
+    }
+    return content;
+  });
+
+  return lines
+    .join("\n")
+    .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+    .replace(/__([^_\n]+)__/g, "$1")
+    .replace(/\*([^*\n]+)\*/g, "$1")
+    .replace(/~~([^~\n]+)~~/g, "$1")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
 }
 
 export function splitSentences(text: string) {
@@ -419,8 +485,10 @@ function softenAbsolute(sentence: string) {
 }
 
 export function analyzeAnswer(input: CheckInput): AnalysisResult {
-  const answerSentences = splitSentences(input.answer);
-  const index = buildReferenceIndex(input.referenceText);
+  // 마크다운 기호를 먼저 걷어 낸다. 제목·표·강조 표기가 남으면 문장 분리부터 무너진다.
+  const answerText = normalizeMarkdown(input.answer);
+  const answerSentences = splitSentences(answerText);
+  const index = buildReferenceIndex(normalizeMarkdown(input.referenceText));
   const hasReference = index.sentences.length > 0;
   const invalidSource = !validSourceUrl(input.sourceUrl);
   const fatalErrors: string[] = [];
@@ -563,7 +631,7 @@ export function analyzeAnswer(input: CheckInput): AnalysisResult {
   const metrics: Record<MetricKey, number> = {
     grounding: hasReference ? clamp(evidenceAverage) : 0,
     accuracy: clamp(96 - contradictionRatio * 60 - unsupportedRatio * 30),
-    koreanQuality: koreanQualityScore(input.answer, answerSentences),
+    koreanQuality: koreanQualityScore(answerText, answerSentences),
     // 자연스러운 한국어는 distinct-2가 0.9 위에 몰려 있다. 0.55~1.0 구간을 0~100으로 펴서 변별력을 준다.
     diversity: clamp(
       ((distinctBigramRatio(answerTokenLists) - 0.55) / 0.45) * 100 -
@@ -573,13 +641,12 @@ export function analyzeAnswer(input: CheckInput): AnalysisResult {
     transparency: clamp(94 - unsupportedRatio * 40 - Math.min(24, absoluteRatio * 24)),
   };
 
+  const scoredMetrics = (Object.keys(METRIC_WEIGHTS) as MetricKey[]).filter(
+    (key) => hasReference || !SOURCE_DEPENDENT_METRICS.includes(key),
+  );
+  const weightSum = scoredMetrics.reduce((sum, key) => sum + METRIC_WEIGHTS[key], 0);
   const weightedScore = clamp(
-    metrics.grounding * 0.26 +
-      metrics.accuracy * 0.22 +
-      metrics.koreanQuality * 0.15 +
-      metrics.diversity * 0.12 +
-      metrics.information * 0.13 +
-      metrics.transparency * 0.12,
+    scoredMetrics.reduce((sum, key) => sum + metrics[key] * METRIC_WEIGHTS[key], 0) / weightSum,
   );
 
   let verdict: Verdict;
@@ -589,7 +656,7 @@ export function analyzeAnswer(input: CheckInput): AnalysisResult {
     score = null;
   } else if (!hasReference || unsupportedRatio > UNSUPPORTED_VERDICT_RATIO) {
     verdict = "근거 추가 필요";
-  } else if (weightedScore >= 82 && Object.values(metrics).every((value) => value >= 65)) {
+  } else if (weightedScore >= 82 && scoredMetrics.every((key) => metrics[key] >= 65)) {
     verdict = "사용 가능";
   } else {
     verdict = "수정 후 사용";
